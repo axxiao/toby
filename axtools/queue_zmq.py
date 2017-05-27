@@ -93,7 +93,7 @@ class Q_device(Thread,Base_connector):
 
             if self.port_monitor>0:
                 self.monitor = self.context.socket(zmq.PUB)
-                self.logger.debug('Tring to bind Monitor port at ' + addr)
+                self.logger.debug('TTherering to bind Monitor port at ' + addr)
                 addr = "tcp://*:" + str(self.port_monitor)
                 self.monitor.bind(addr)
                 self.logger.debug('Monitor port PUB is up at ' + addr)
