@@ -11,13 +11,11 @@ __version__ = "0.1"
 
 """
 import redis
-import pickle
 
 
-class Q_Pub():
+class Q_Pub(host='localhost', port=12116, db=11):
+    r = redis.Redis(host='localhost', port=12116, db=11)
+    p = r.pubsub()
 
-    r=redis.Redis(host='localhost', port=6379, db=0)
-    p=r.pubsub()
-
-    r.publish('ch1','b')
+    r.publish('ch1', 'b')
     p.get_message()
