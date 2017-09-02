@@ -12,8 +12,8 @@ __version__ = "0.1"
 """
 import zmq
 from threading import Thread
-from ax_tools import trace_error
-from ax_queue import Q_Base_connector as Base_connector
+from .ax_tools import trace_error
+from .ax_queue import Q_Base_connector as Base_connector
 
 
 class Q_Device(Thread, Base_connector):
@@ -35,9 +35,9 @@ class Q_Device(Thread, Base_connector):
     """
 
     def __init__(self, name='Exchanger', mode=['sub', 'pub'], port_in=12116, port_out=12117, port_monitor=-1,
-                 logger=None):
+                 logger_name=None):
         Thread.__init__(self)
-        Base_connector.__init__(self, logger=logger)
+        Base_connector.__init__(self, logger_name=logger_name)
         self.context = None
         self.monitor = None
         self.name = name
@@ -66,14 +66,14 @@ class Q_Device(Thread, Base_connector):
             address = "tcp://*:" + str(self.port_in)
             self.logger.debug('Trying to bind In port at ' + address)
             self.frontend.bind(address)
-            self.logger.debug('In port ' + self.mode_map[self.mode[0]] + ' is up at ' + address)
+            self.logger.debug('In port ' + str(self.port_in) + ' is up at ' + address)
 
             # Socket facing services
             self.backend = self.context.socket(self.mode_map[self.mode[1]])
             self.logger.debug('Trying to bind Out port at ' + address)
             address = "tcp://*:" + str(self.port_out)
             self.backend.bind(address)
-            self.logger.debug('Out port ' + self.mode_map[self.mode[1]] + ' is up at ' + address)
+            self.logger.debug('Out port ' + str(self.port_out) + ' is up at ' + address)
 
             if self.port_monitor > 0:
                 self.monitor = self.context.socket(zmq.PUB)

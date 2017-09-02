@@ -12,7 +12,7 @@ __version__ = "0.1"
 
 import logging
 
-base_logger_name=""
+base_logger_name = ""
 
 '''
     Build logger objects for objects
@@ -25,13 +25,13 @@ base_logger_name=""
 '''
 
 
-def build_logger(name, log_level='info'):
+def build_logger(name, in_log_level='info'):
     """
     Build logger objects for objects
     * Build once for each application
     
     :param name: the logger name
-    :param log_level: the level of logging.X e.g. info/debug/error/critical/warning
+    :param in_log_level: the level of logging.X e.g. info/debug/error/critical/warning
     :return: The logger instance
     """
     global base_logger_name
@@ -41,7 +41,8 @@ def build_logger(name, log_level='info'):
         'critical': logging.CRITICAL, 'warning': logging.WARNING
     }
     logger = logging.getLogger(name)
-    logger.setLevel(levels[log_level.lower()])
+    log_level = levels[in_log_level.lower()]
+    logger.setLevel(log_level)
     ch = logging.StreamHandler()
     ch.setLevel(log_level)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
