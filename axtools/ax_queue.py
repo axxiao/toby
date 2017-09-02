@@ -10,8 +10,8 @@ __version__ = "0.1"
         0.1 : implemented basic definition
 
 """
-from ax_tools import run_thread
-from ax_log import get_logger
+from .ax_tools import run_thread
+from .ax_log import get_logger
 
 
 class Q_Base_connector():
