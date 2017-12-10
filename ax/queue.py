@@ -10,11 +10,10 @@ __version__ = "0.1"
         0.1 : implemented basic definition
 
 """
-from .ax_tools import run_thread
-from .ax_log import get_logger
+from .log import get_logger
 
 
-class Q_Base_connector():
+class QueueBaseConnector:
     """
         The common base class for all connectors
     """
@@ -32,15 +31,3 @@ class Q_Base_connector():
         self.logger_name = logger_name
         self.logger = get_logger(logger_name)
 
-def start_queue_server(server_type, server_host="127.0.0.1", server_ports={"in_port":12116,"out_port":12117}):
-
-
-    pass
-
-
-def get_queue_pub():
-    pass
-
-
-def get_queue_sub():
-    pass
