@@ -12,7 +12,7 @@ __version__ = "0.1"
 
 import logging
 
-base_logger_name = ""
+base_logger_name = "Toby"
 
 '''
     Build logger objects for objects
