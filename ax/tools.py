@@ -23,6 +23,20 @@ default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%dT%H:%M:%S.%f"
 
 
+def get_ngrok_url(host='http://127.0.0.1:4040', tunnel_name='toby'):
+    """
+    Ngrok API
+    :param host: 
+    :param tunnel_name: 
+    :return: the https address e.e.
+    """
+    r = None
+    for url in get(host+'/api/tunnels').json()['tunnels']:
+        if url['name'] == tunnel_name:
+            r = url['public_url']
+    return r
+
+
 def get_utc_now():
     """
     The UTC time

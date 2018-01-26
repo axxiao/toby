@@ -187,23 +187,25 @@ class QueueSub(QueueConnector):
         """
         if not topics:
             topics = self.topics
-        if type(topics).__name__ == 'str':
+        if type(topics) == str:
             topics = [topics]
+        for top in topics:
+            if top not in self.topics:
+                self.socket.setsockopt(zmq.SUBSCRIBE, top.encode(self.code))
+                self.logger.debug('Subscribed ' + top)
         if topics and cleanup:
             # un-subscribe previous
             for top in topics:
                 if top not in self.topics:
-                    topic_filter = top.encode(self.code)
-                    self.socket.setsockopt(zmq.UNSUBSCRIBE, topic_filter)
+                    self.socket.setsockopt(zmq.UNSUBSCRIBE, top.encode(self.code))
                     self.logger.debug('Un-subscribed ' + top)
-
-        for top in topics:
-            topic_filter = top.encode(self.code)
-            self.socket.setsockopt(zmq.SUBSCRIBE, topic_filter)
-            self.logger.debug('Subscribed ' + top)
         return topics
 
     def sub_raw(self):
+        """
+        Raw method of sub
+        :return: topic & data
+        """
         topic, data = self.socket.recv_multipart()
         self.last_topic = topic
         return topic, data
