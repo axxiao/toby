@@ -1,26 +1,62 @@
 """
-The place for small tools
+The place for common used functions
 
 __author__ = "Alex Xiao <http://www.alexxiao.me/>"
-__date__ = "2017-07-01"
-__version__ = "0.1"
+__date__ = "2018-03-03"
+__version__ = "0.2"
 
     Version:
-        0.1 : implemented run_thread
+        0.1 (1/7/2017): implemented run_thread, run_thread, search_paragraph
+        0.2 (3/3/2018): moved date related function to datetime, added retry
+
+Functions List:
+
+    get_ngrok_url - return ngrok information
+    get_public_ip -  return current machine's public ip
+    retry - [decorator] to try to run function x time
+    search_paragraph - [generator] return paragraph between start/end keywords
 
 """
-
-import os
-import sys
+from functools import wraps
+from .exception import MaxRetryReached
+from .log import trace_error
 import threading
-import traceback
-from datetime import datetime
-
-import arrow
+import time
 from requests import get
 
-default_date_format = "%Y-%m-%d"
-default_datetime_format = "%Y-%m-%dT%H:%M:%S.%f"
+
+def retry(max_retry_times, logger=None, retry_interval=1.0, pass_retry_param_name=None):
+    """
+    Retry the function for certain, if still fail, raise MaxRetryReached Exception
+    :param max_retry_times: how many times of retry
+    :param [optional] logger: the logger to catch exceptions
+    :param [optional] retry_interval: how many seconds to sleep before next retry
+    :param [optional] pass_retry_param_name: the parameter name to pass into function
+    :return:
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            cnt = 0
+            while cnt < max_retry_times:
+                cnt += 1
+                try:
+                    if pass_retry_param_name:
+                        kwargs[pass_retry_param_name] = cnt
+                    return func(*args, **kwargs)
+                except:
+                    if logger:
+                        trace_error(logger)
+                        logger.warning('Retry ' + func.__name__ + ' ' + str(cnt) + ' time(s)')
+                        # print(cnt)
+                    if cnt >= max_retry_times:
+                        # Reach max Retry
+                        if logger:
+                            logger.error('Retry ' + func.__name__ + str(cnt) + ' reached max times')
+                        raise MaxRetryReached(func.__name__ , cnt)
+                    time.sleep(retry_interval)
+        return wrapper
+    return decorator
 
 
 def get_ngrok_url(host='http://127.0.0.1:4040', tunnel_name='toby'):
@@ -37,61 +73,23 @@ def get_ngrok_url(host='http://127.0.0.1:4040', tunnel_name='toby'):
     return r
 
 
-def get_utc_now():
-    """
-    The UTC time
-    :return: the utc datetime now
-    """
-    return datetime.utcnow()
-
-
-def get_local_now(dt=datetime.utcnow()):
-    """
-    Current local time
-    
-    Timezone is via system variable TIMEZONE
-    :return: the current date time (datetime.datetime)
-    """
-    return arrow.get(dt).to(os.getenv('TIMEZONE', 'Australia/Melbourne')).datetime
-
-
-def format_date(dt, date_format=default_date_format):
-    return dt.format(date_format)
-
-
-def format_datetime(dt, date_format=default_datetime_format):
-    return dt.format(date_format)
-
-
 def run_thread(fun, *args, **kwargs):
     """
     Run function as background as thread
     
-    :param fun: the function 
+    :param fun: the function
+    :param set_daemon_flg :[optional, default to false] if run thread in daemon mode
     :param args: position args
     :param kwargs: key word args
     :return: the thread instance
     """
     th = threading.Thread(target=fun, args=args, kwargs=kwargs)
-    th.setDaemon(True)
+    th.setDaemon(kwargs.get('set_daemon_flg',False))
     th.start()
     return th
 
 
-def trace_error(logger):
-    """
-    Capture & log the error 
-    
-    :param logger: 
-    :return: Formatted error message 
-    """
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-    rtn = traceback.format_exception(exc_type, exc_value, exc_traceback)
-    logger.error(rtn)
-    return rtn
-
-
-def search_part(orig_str, begin, end=None, strip=False):
+def search_paragraph(orig_str, begin, end=None, strip=False):
     """
     The generator function to return all information that in between start/end key words
 

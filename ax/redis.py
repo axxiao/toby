@@ -2,18 +2,23 @@
 The redis components for Cache/ Queue
 
 __author__ = "Alex Xiao <http://www.alexxiao.me/>"
-__date__ = "2017-12-10"
-__version__ = "0.1"
+__date__ = "2018-03-03"
+__version__ = "0.2"
 
     Version:
-        0.1 : implemented basic definition
+        0.1 (10/12/2017): implemented basic definition
+        0.2 (03/03/2018): added timeout to pubsub
 
+
+Classes:
+    Cache - To access redis cache
+    PubSub - To access redis pub/sub queues
 """
 import os
 import pickle
-
 import redis
-
+from .exception import Timeout
+from .datetime import current_sys_time
 from .base import Connector
 
 
@@ -28,7 +33,9 @@ class Base(Connector):
 
     def connect(self, rds=redis.Redis, **kwargs):
         if 'passwword' not in kwargs:
-            kwargs['password'] = os.environ['REDIS_PASSWD']
+            pwd=os.environ.get('REDIS_PASSWD',None)
+            if pwd:
+                kwargs['password'] = pwd
         self.redis = rds(host=self.host, port=self.port, db=self.db, **kwargs)
 
 
@@ -92,28 +99,59 @@ class PubSub(Base):
         Base.__init__(self, logger_name=logger_name, host=host, port=port, db=db)
         kwargs = dict()
         self.channels = None
+        self.last_channel = None
         self.timeout = timeout
         if timeout > 0:
             kwargs['socket_timeout'] = timeout
         self.connect(redis.StrictRedis, **kwargs)
-        self.pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
+        self.redis_pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
 
     def pub(self, channel, message):
-        self.redis.publish(channel, message)
+        self.redis.publish(channel, self._pack_msg(message))
 
-    def sub(self, *channels, block=True):
+    def _pack_msg(self, msg):
+        m = pickle.dumps(msg)
+        return m
+
+    def _unpack_msg(self, queue_inp):
+        m = None
+        if queue_inp is not None:
+            m=pickle.loads(queue_inp['data']) if queue_inp.get('data', None) is not None else None
+            self.last_channel = queue_inp['channel'].decode()
+        return m
+
+    def sub(self, *channels, timeout=-1, wildcard=True):
         """
         Subscribe and return result 
         
         :param channels: the channels to listen 
-        :param block: use block mode
+        :param timeout: if <0 use block mode, eles, timeout in provided seconds
+        :param wildcard: is wildcard to be used in channels (subscribe/ psubscribe)
         :return: 
         """
         if channels != self.channels:
             self.unsub()
-            self.pubsub.subscribe(*channels)
+            if wildcard:
+                self.redis_pubsub.psubscribe(*channels)
+            else:
+                self.redis_pubsub.subscribe(*channels)
             self.channels = channels
-        return self.pubsub.listen() if block else self.pubsub.get_message()
+            self.logger.debug('Subscribed to queue:'+str(channels))
+        if timeout < 0:
+            #Block until receive
+            #for msg in self.redis_pubsub.listen():
+            #    rtn = msg
+            #    break
+            rtn = next(self.redis_pubsub.listen())
+        else:
+            timeout_ts = current_sys_time()+timeout
+            rtn = None
+            while rtn is None and timeout_ts > current_sys_time():
+                rtn = self.redis_pubsub.get_message(ignore_subscribe_messages=True, timeout=timeout)
+            if rtn is None:
+                raise Timeout('Timeout while listening to queue:'+str(self.channels))
+
+        return self._unpack_msg(rtn)
 
     def unsub(self):
-        self.pubsub.unsubscribe()
+        self.redis_pubsub.unsubscribe()
