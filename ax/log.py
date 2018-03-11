@@ -11,6 +11,9 @@ __version__ = "0.1"
 """
 
 import logging
+import traceback
+import sys
+
 
 base_logger_name = "Toby"
 
@@ -60,3 +63,16 @@ def get_logger(name):
     :return: return the logger
     """
     return logging.getLogger(base_logger_name+'.'+name)
+
+
+def trace_error(logger):
+    """
+    Capture & log the error
+
+    :param logger:
+    :return: Formatted error message
+    """
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    rtn = traceback.format_exception(exc_type, exc_value, exc_traceback)
+    logger.error(rtn)
+    return rtn

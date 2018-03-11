@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, "/home/toby/workspace/toby")
+#sys.path.insert(0, "/home/toby/workspace/toby")
 from ax.log import build_logger
 from ax.zmq import QueueDevice, QueueSub
 from threading import Thread
