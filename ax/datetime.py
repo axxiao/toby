@@ -50,22 +50,15 @@ def add_datetime(orig_datetime, units='seconds=1'):
     return orig_datetime + relativedelta.relativedelta(**k)
 
 
-def utc_now():
-    """
-    The UTC time
-    :return: the utc datetime now
-    """
-    return datetime.utcnow()
-
-
 def now(zone=tz_local):
     """
     Current local time
 
     Timezone is via system variable TIMEZONE
+    :param zone: the timezone or name of the timezone
     :return: the current date time (datetime.datetime)
     """
-    return datetime.now(tz=zone)
+    return datetime.now(tz=pytz.timezone(zone) if type(zone) == str else zone)
 
 
 def format_date(dt, date_format=default_date_format):
@@ -76,3 +69,12 @@ def format_datetime(dt, date_format=default_datetime_format):
     return dt.format(date_format)
 
 
+def update_timezone(dt, new_zone):
+    """
+    Update the timezone info for the given datetime
+    :param dt: the datetime
+    :param new_zone: new timezone
+    :return: datetime with updated timezone
+    """
+    new_tz = pytz.timezone(new_zone) if type(new_zone)==str else new_zone
+    return new_tz.localize(dt if dt.tzinfo is None else dt.replace(tzinfo=None))
