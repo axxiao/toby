@@ -6,7 +6,8 @@ __date__ = "2018-03-15"
 __version__ = "0.1"
 
     Version:
-        0.1 : implemented basic Dask Client
+        0.1 (15/03/18): implemented basic Dask Client
+        0.2 (25/03/18): added function run on specific workers
 
 """
 from uuid import uuid4
@@ -17,7 +18,6 @@ from dask.distributed import Client, wait, fire_and_forget
 from distributed.utils import sync
 
 
-
 class DaskClient(Client, Connector):
     def __init__(self, host='tcp://127.0.0.1', port=8786, name='Dask.Client', logger_name='Toby.Dask',dedicate_workers=None):
         Connector.__init__(self, host=host, port=port, logger_name=logger_name)
@@ -26,7 +26,7 @@ class DaskClient(Client, Connector):
         self.only_on_dedicate_workers = True
         self.save_data = self.set_metadata
         self.get_data = self.get_metadata
-        self.all_workers = []
+        self.all_workers = {}
 
     def set_dedicate_workers(self, workers, only_on_dedicate_workers=False, error_if_not_found=True):
         """
@@ -42,6 +42,7 @@ class DaskClient(Client, Connector):
             w = self.all_workers[wrk]
             vis_workers[w['name']] = wrk
         valid_workers = []
+
         for w in workers if type(workers) != str else [workers]:
             # valid if the name is ok
             for x in vis_workers.keys():
