@@ -14,19 +14,43 @@ from uuid import uuid4
 from .exception import NoAvailableWorker
 from .base import Connector
 from .tools import reload_module
-from dask.distributed import Client, wait, fire_and_forget
+from dask.distributed import Client, wait, fire_and_forget, Future
 from distributed.utils import sync
 
 
 class DaskClient(Client, Connector):
-    def __init__(self, host='tcp://127.0.0.1', port=8786, name='Dask.Client', logger_name='Toby.Dask',dedicate_workers=None):
+    def __init__(self, host='tcp://127.0.0.1', port=8786, name='Dask.Client', logger_name='Toby.Dask'):
         Connector.__init__(self, host=host, port=port, logger_name=logger_name)
         Client.__init__(self, address=host+':'+str(port), name=name)
-        self.dedicate_workers = dedicate_workers
+        self.dedicate_workers = None
         self.only_on_dedicate_workers = True
-        self.save_data = self.set_metadata
-        self.get_data = self.get_metadata
+        #self.save_data = self.set_metadata
+        #self.get_data = self.get_metadata
         self.all_workers = {}
+
+    def publish_dataset(self, dataset, persist=True):
+        if persist:
+            self.persist(dataset, workers=self.dedicate_workers)
+        super(Client, self).publish_dataset(dataset)
+
+    def get_future(self, key, inform=True):
+        """
+
+        :param key: the key of the future to get
+        :param inform: bool
+            Do we inform the scheduler that we need an update on this future
+        :return:
+        """
+        return Future(key=key, client=self, inform=inform)
+
+    def save_data(self, data, workers=None):
+        """
+        Scatter data to certain workers and return future
+        :param data: data to be scatted
+        :param workers: list of workers, if None, try to use dedicate workers
+        :return: future
+        """
+        return self.scatter(data, workers=workers if workers is None else self.dedicate_workers)
 
     def set_dedicate_workers(self, workers, only_on_dedicate_workers=False, error_if_not_found=True):
         """
@@ -118,7 +142,7 @@ class DaskClient(Client, Connector):
 
         :param func: function to be run
         :param args: keyword-arguments
-        :param return_type: [default to 'key'] return the key of future or the future
+        :param return_type: [default to 'key'] return the key of the future or the future
         :param force_rerun: [default to True] if true, generate a unique key to make sure run the code without cache
         :param kwargs: keyword-arguments
         :return: the key value if return_type='key' (default) else teh future
