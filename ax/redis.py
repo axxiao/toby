@@ -154,5 +154,5 @@ class PubSub(Base):
         return self._unpack_msg(rtn)
 
     def unsub(self):
-        self.redis_pubsub.psunsubscribe()
+        self.redis_pubsub.punsubscribe()
         self.redis_pubsub.unsubscribe()
