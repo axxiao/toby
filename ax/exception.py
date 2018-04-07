@@ -24,6 +24,10 @@ class Timeout(BaseError):
         BaseError.__init__(self, 'TIMEOUT',desc)
 
 
+class BotError(BaseError):
+    def __init__(self, code,error_message):
+        BaseError.__init__(self, code, error_message)
+
 
 class NoAvailableWorker(BaseError):
     """Raised when timeout

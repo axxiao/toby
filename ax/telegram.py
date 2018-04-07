@@ -19,13 +19,23 @@ from telegram.ext import MessageHandler, Filters
 from ax.log import get_logger
 from threading import Thread
 from ax.queue import Queue
+from .exception import BotError
 import json
+import os
+import requests
 import collections
+from .tools import get_ngrok_url
+
+queue_to_user='toby.telegram.to_user'
+queue_from_user='toby.telegram.from_user'
 
 
 class Bot(Thread):
-    def __init__(self, name='Toby', in_queue='toby.telegram.to_user'
-                 , out_queue='toby.telegram.from_user'
+    """
+    The Bot in back ground service mode
+    """
+    def __init__(self, name='Toby', in_queue=queue_to_user
+                 , out_queue=queue_from_user
                  , logger_name='Toby.Bot.Telegram'):
         Thread.__init__(self)
         self.name = name
@@ -104,3 +114,64 @@ class Bot(Thread):
                 self.updater.bot.send_message(in_msg["chat_id"], in_msg["message"])
             except:
                 pass
+
+
+def send_request(msg, method='sendMessage', token=None, timeout=None, file=None):
+    """
+    Send request to Telegram API
+    :param msg: in json, content of the request
+    :param method: the method, default to sendMessage
+    :param token: bot token if None, will use environment variable TOBY_TELEGRAM_TOKEN
+    :param timeout: timeout time of the request, default to None
+    :param file: file to upload, default to None
+    :return: status
+    """
+    if token is None:
+        token = os.environ['TOBY_TELEGRAM_TOKEN']
+    url = 'https://api.telegram.org/bot' + token + '/' + method
+    rtn = requests.post(url, json=msg, timeout=timeout).json() if msg else requests.post(url, files=file, timeout=timeout).json()
+    if not rtn.get("ok", False):
+        # request Failed
+        raise BotError(rtn.get('error_code', -1), rtn.get('description', 'unknown error'))
+    return rtn
+
+
+def send_photo(chat_id, photoFile, caption=None, token=None):
+    """
+    Send photo
+    :param chat_id: the chat id
+    :param photoFile: the photo file, can be url or file: e.g. open('/data/xxx.png', 'rb')
+    :param caption: caption of the file (when use url)
+    :param token: bot token if None, will use environment variable TOBY_TELEGRAM_TOKEN
+    :return: status
+    """
+    if type(photoFile) == str:
+        req = json.loads('{"chat_id":"' + chat_id + '"')
+        if caption:
+            req['caption'] = caption
+        req['photo'] = photoFile
+        return send_request(req, method='sendPhoto', token=token)
+    else:
+        method = 'sendPhoto?chat_id=' + str(chat_id)
+        files = {'photo': photoFile}
+        return send_request(None, method=method, token=token, file=files)
+
+
+def init_bot_webhook(url='https://alexxiao.me', token=None, certificate=None, allowed_updates=['message', 'callback_query']):
+    """
+    Init web hook
+    :param url: the server url, set to None get local ngrok_url
+    :param token: bot token if None, will use environment variable TOBY_TELEGRAM_TOKEN
+    :param certificate: InputFile of self-signed certificate
+    :param allowed_updates: List the types of updates you want your bot to receive
+    :return:
+    """
+    tgt_url=get_ngrok_url() if url is None else url
+    if token is None:
+        token = os.environ['TOBY_TELEGRAM_TOKEN']
+    tgt_url +='' if tgt_url[-1] == '/' else '/'+token
+    req=json.loads('{"url":"'+tgt_url+'", "max_connections":20}')
+    req['allowed_updates'] = allowed_updates
+    if certificate:
+        req['certificate'] = certificate
+    return send_request(req, method='setWebhook', token=token)
