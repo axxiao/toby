@@ -116,7 +116,7 @@ class PubSub(Base):
     def _unpack_msg(self, queue_inp):
         m = None
         if queue_inp is not None:
-            m=pickle.loads(queue_inp['data']) if queue_inp.get('data', None) is not None else None
+            m = pickle.loads(queue_inp['data']) if queue_inp.get('data', None) is not None else None
             self.last_channel = queue_inp['channel'].decode()
         return m
 

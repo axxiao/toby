@@ -25,6 +25,10 @@ import time
 from requests import get
 
 
+def reload_module(module_full_name, logger_name=None):
+    pass
+
+
 def retry(max_retry_times, logger=None, retry_interval=1.0, pass_retry_param_name=None):
     """
     Retry the function for certain, if still fail, raise MaxRetryReached Exception

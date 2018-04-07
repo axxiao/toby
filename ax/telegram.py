@@ -1,13 +1,26 @@
-import collections
-import json
-from threading import Thread
+"""
+The telegram interface
 
+__author__ = "Alex Xiao <http://www.alexxiao.me/>"
+__date__ = "2018-04-07"
+__version__ = "0.1"
+
+    Version:
+        0.1 (07/04/2018): init version
+
+
+Classes:
+    Cache - To access redis cache
+    PubSub - To access redis pub/sub queues
+"""
+from telegram.ext import Updater
 from telegram.ext import CommandHandler
 from telegram.ext import MessageHandler, Filters
-from telegram.ext import Updater
-
-from .log import get_logger
-from .zmq import QueuePub, QueueSub
+from ax.log import get_logger
+from threading import Thread
+from ax.queue import Queue
+import json
+import collections
 
 
 class Bot(Thread):
@@ -22,9 +35,15 @@ class Bot(Thread):
         self.cmd_list = dict()
         self.dispatcher = None
         self.running = False
-        self.sub = QueueSub(in_queue, logger_name=logger_name).sub
-        pub = QueuePub(logger_name=logger_name)
-        self.pub = lambda msg: pub.pub(out_queue, msg)
+        self.queue = Queue(logger_name=logger_name)
+        self.sub = self.queue.sub
+        # self.pub = lambda msg: self.queue.pub(out_queue, msg)
+        self.in_queue = in_queue
+        self.out_queue = out_queue
+
+    def pub(self, msg):
+        self.logger.debug(str(msg))
+        self.queue.pub(self.out_queue, msg)
 
     def connect(self, token):
         self.logger.info('Starting Bot ' + self.name)
@@ -41,11 +60,16 @@ class Bot(Thread):
         self.updater.start_polling()
         self.logger.info('Bot is online')
 
+    def disconnect(self):
+        self.running = False
+        self.updater.stop()
+
     def process_txt(self, bot, update, input_type):
         msg = {"user_id": update.message.from_user,
                "chat_id": update.message.chat_id,
                "type": "message",
                "message": update.message.text}
+        self.logger.debug(str(msg))
         self.pub(msg)
 
     def register_cmd(self, cmd, fun, override=False):
@@ -73,5 +97,10 @@ class Bot(Thread):
     def run(self):
         self.running = True
         while self.running:
-            in_msg = json.loads(self.sub(), strict=False)
-            self.updater.bot.send_message(in_msg["chat_id"], in_msg["message"])
+            try:
+                in_msg = self.sub(self.in_queue, timeout=3600, wildcard=False)
+                self.logger.debug(in_msg)
+                in_msg = json.loads(in_msg, strict=False)
+                self.updater.bot.send_message(in_msg["chat_id"], in_msg["message"])
+            except:
+                pass

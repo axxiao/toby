@@ -31,7 +31,7 @@ class DaskClient(Client, Connector):
     def publish_dataset(self, dataset, persist=True):
         if persist:
             self.persist(dataset, workers=self.dedicate_workers)
-        super(Client, self).publish_dataset(dataset)
+        super(DaskClient, self).publish_dataset(dataset)
 
     def get_future(self, key, inform=True):
         """
