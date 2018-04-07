@@ -142,7 +142,7 @@ class PubSub(Base):
             #for msg in self.redis_pubsub.listen():
             #    rtn = msg
             #    break
-            rtn = next(self.redis_pubsub.listen())
+            rtn = self.redis_pubsub.listen()
         else:
             timeout_ts = current_sys_time()+timeout
             rtn = None
@@ -154,4 +154,5 @@ class PubSub(Base):
         return self._unpack_msg(rtn)
 
     def unsub(self):
+        self.redis_pubsub.psunsubscribe()
         self.redis_pubsub.unsubscribe()
