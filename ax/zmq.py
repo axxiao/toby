@@ -219,3 +219,21 @@ class QueueSub(QueueConnector):
         topic, data = self.sub_raw()
         self.logger.debug('Received [' + topic.decode(self.code) + '] ' + data.decode(self.code))
         return data.decode(self.code)
+
+
+class MessagePusher(QueueConnector):
+    def __init__(self, host='tcp://127.0.0.1', port=12116, logger_name='Q_pub', code='utf-8'):
+        QueueConnector.__init__(self, zmq.PUSH, host=host, port=port, mode='bind', logger_name=logger_name)
+        self.code = code
+
+    def pre_connect(self):
+        pass
+
+
+class MessagePuller(QueueConnector):
+    def __init__(self, host='tcp://127.0.0.1', port=12116, logger_name='Q_pub', code='utf-8'):
+        QueueConnector.__init__(self, zmq.PULL, host=host, port=port, logger_name=logger_name)
+        self.code = code
+
+    def pre_connect(self):
+        pass

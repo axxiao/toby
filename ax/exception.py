@@ -24,6 +24,21 @@ class Timeout(BaseError):
         BaseError.__init__(self, 'TIMEOUT',desc)
 
 
+class BotError(BaseError):
+    def __init__(self, code,error_message):
+        BaseError.__init__(self, code, error_message)
+
+
+class NoAvailableWorker(BaseError):
+    """Raised when timeout
+
+        Attributes:
+            fun
+        """
+
+    def __init__(self, worker=''):
+        BaseError.__init__(self, 'NoAvailableWorker',str(worker))
+
 class MaxRetryReached(BaseError):
     """Raised when an Max retry reached
 

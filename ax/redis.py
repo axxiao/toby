@@ -116,7 +116,7 @@ class PubSub(Base):
     def _unpack_msg(self, queue_inp):
         m = None
         if queue_inp is not None:
-            m=pickle.loads(queue_inp['data']) if queue_inp.get('data', None) is not None else None
+            m = pickle.loads(queue_inp['data']) if queue_inp.get('data', None) is not None else None
             self.last_channel = queue_inp['channel'].decode()
         return m
 
@@ -139,10 +139,10 @@ class PubSub(Base):
             self.logger.debug('Subscribed to queue:'+str(channels))
         if timeout < 0:
             #Block until receive
-            #for msg in self.redis_pubsub.listen():
-            #    rtn = msg
-            #    break
-            rtn = next(self.redis_pubsub.listen())
+            for msg in self.redis_pubsub.listen():
+                rtn = msg
+                break
+            #rtn = self.redis_pubsub.listen()
         else:
             timeout_ts = current_sys_time()+timeout
             rtn = None
@@ -154,4 +154,5 @@ class PubSub(Base):
         return self._unpack_msg(rtn)
 
     def unsub(self):
+        self.redis_pubsub.punsubscribe()
         self.redis_pubsub.unsubscribe()
