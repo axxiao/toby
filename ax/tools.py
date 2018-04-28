@@ -20,9 +20,46 @@ Functions List:
 from functools import wraps
 from .exception import MaxRetryReached
 from .log import trace_error
+import ax.datetime as ax_datetime
 import threading
 import time
 from requests import get
+import inspect
+
+
+def list_functions(module):
+    """
+    List top-level function name & function
+    :param module: the module
+    :return: dict of all functions
+    """
+    return dict(inspect.getmembers(ax.datetime, inspect.isfunction))
+
+
+def load_standard_functions():
+    """
+    Commonly used functions for safe eval
+    :return:
+    """
+    funcs = {'len': len, 'filter': filter}
+    funcs = {**list_functions(ax_datetime), **funcs}
+    return funcs
+
+
+standard_functions = load_standard_functions()
+
+
+def safe_eval(expression, variables={}, standard_functions=standard_functions):
+    """
+    Safe eval, only allow give functions/ expression
+    :param expression: the expression for eval
+    :param variables: all variables to be used in the eval
+    :param standard_functions: list of standard functions, default to common functions
+    :return: expressioneval result
+    """
+    params = {**variables, **standard_functions}
+    params['__builtins__'] = {}
+    return eval(expression, params)
 
 
 def reload_module(module_full_name, logger_name=None):
