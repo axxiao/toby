@@ -25,6 +25,8 @@ import threading
 import time
 from requests import get
 import inspect
+import sys
+import importlib
 
 
 def list_functions(module):
@@ -33,7 +35,7 @@ def list_functions(module):
     :param module: the module
     :return: dict of all functions
     """
-    return dict(inspect.getmembers(ax.datetime, inspect.isfunction))
+    return dict(inspect.getmembers(module, inspect.isfunction))
 
 
 def load_standard_functions():
@@ -62,8 +64,41 @@ def safe_eval(expression, variables={}, standard_functions=standard_functions):
     return eval(expression, params)
 
 
-def reload_module(module_full_name, logger_name=None):
-    pass
+def load_module(module, logger=None, force_reload=True):
+    """
+    Load/ Import module
+    :param module: Module full name e.g. ax.datetime
+    :param logger: [optional] for logging info
+    :param force_reload: [Default to True] flag to control if reload existing module
+    :return: the module
+    """
+    if module in sys.modules:
+        if force_reload:
+            if logger:
+                logger.info('Existing module, reloading ' + module)
+            return importlib.reload(sys.modules[module])
+        else:
+            if logger:
+                logger.info('Use existing module' + module)
+            return sys.modules[module]
+    else:
+        logger.info('New module, loading ' + module)
+    return importlib.import_module(module)
+
+
+def load_function(module, func, logger=None, force_reload=True):
+    """
+    Load/ Import function
+    :param module: Module full name e.g. ax.datetime
+    :param func: the function of the module
+    :param logger: [optional] for logging info
+    :param force_reload: [Default to True] flag to control if reload existing module
+    :return: the function
+    """
+    mod = load_module(module, logger=logger, force_reload=force_reload)
+    if logger:
+        logger.info('Getting function '+func)
+    return mod.__dict__[func]
 
 
 def retry(max_retry_times, logger=None, retry_interval=1.0, pass_retry_param_name=None):

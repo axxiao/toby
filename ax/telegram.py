@@ -127,7 +127,7 @@ def send_request(msg, method='sendMessage', token=None, timeout=None, file=None)
     :return: status
     """
     if token is None:
-        token = os.environ['TOBY_TELEGRAM_TOKEN']
+        token = os.environ['TELEGRAM_BOT_TOKEN']
     url = 'https://api.telegram.org/bot' + token + '/' + method
     rtn = requests.post(url, json=msg, timeout=timeout).json() if msg else requests.post(url, files=file, timeout=timeout).json()
     if not rtn.get("ok", False):
@@ -168,7 +168,7 @@ def init_bot_webhook(url='https://alexxiao.me', token=None, certificate=None, al
     """
     tgt_url=get_ngrok_url() if url is None else url
     if token is None:
-        token = os.environ['TOBY_TELEGRAM_TOKEN']
+        token = os.environ['TELEGRAM_BOT_TOKEN']
     tgt_url +='' if tgt_url[-1] == '/' else '/'+token
     req=json.loads('{"url":"'+tgt_url+'", "max_connections":20}')
     req['allowed_updates'] = allowed_updates

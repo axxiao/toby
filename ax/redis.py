@@ -139,10 +139,10 @@ class PubSub(Base):
             self.logger.debug('Subscribed to queue:'+str(channels))
         if timeout < 0:
             #Block until receive
-            #for msg in self.redis_pubsub.listen():
-            #    rtn = msg
-            #    break
-            rtn = self.redis_pubsub.listen()
+            for msg in self.redis_pubsub.listen():
+                rtn = msg
+                break
+            #rtn = self.redis_pubsub.listen()
         else:
             timeout_ts = current_sys_time()+timeout
             rtn = None
