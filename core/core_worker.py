@@ -9,8 +9,17 @@ __version__ = "0.1"
         0.1 : implemented by using zmq pull-push mode to pull task from core
 
 """
+import sys
+from celery import Celery
 
+worker = Celery()
 
 class Worker:
     def __init__(self):
+
         pass
+
+
+if __name__ == "__main__":
+    # get the input args
+    args = sys.argv[1:]
