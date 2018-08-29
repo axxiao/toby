@@ -76,5 +76,5 @@ def update_timezone(dt, new_zone):
     :param new_zone: new timezone
     :return: datetime with updated timezone
     """
-    new_tz = pytz.timezone(new_zone) if type(new_zone)==str else new_zone
+    new_tz = pytz.timezone(new_zone) if type(new_zone) == str else new_zone
     return new_tz.localize(dt if dt.tzinfo is None else dt.replace(tzinfo=None))

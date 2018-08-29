@@ -75,7 +75,7 @@ class tuobi_i2c():
 
             return: cmd, data
 
-            Note: different from standard i2c interface, it will NOT repeat the last one
+            Note: different from standard i2c wrapper, it will NOT repeat the last one
         '''
         if addr not in self.last_ts: self.last_ts[addr] = -1
         recv = self.i2c.receive(addr)

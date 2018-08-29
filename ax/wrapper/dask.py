@@ -11,9 +11,9 @@ __version__ = "0.1"
 
 """
 from uuid import uuid4
-from .exception import NoAvailableWorker
-from .base import Connector
-from .tools import reload_module
+from ax.exception import NoAvailableWorker
+from ax.common import Connector
+from ax.tools import reload_module
 from dask.distributed import Client, wait, fire_and_forget, Future
 from distributed.utils import sync
 

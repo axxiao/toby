@@ -14,8 +14,8 @@ from threading import Thread
 
 import zmq
 
-from .queue import QueueBaseConnector as Base_connector
-from .tools import trace_error
+from ax.info import QueueBaseConnector as Base_connector
+from ax.tools import trace_error
 
 
 class QueueDevice(Thread, Base_connector):

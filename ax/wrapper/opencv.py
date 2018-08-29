@@ -15,11 +15,12 @@ Classes:
 import cv2
 import time
 from threading import Thread
-from .log import get_logger
+from ax.log import get_logger
 
 
 class Camera(Thread):
     def __init__(self, camera_id=0, logger_name='Camera'):
+        Thread.__init__(self)
         self.camera_id = camera_id
         self.cam = None
         self.logger_name = logger_name

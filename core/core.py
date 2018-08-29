@@ -11,7 +11,7 @@ __version__ = "0.1"
         0.1 : implemented by using Redis queue + zmq pull-push mode to push task to workers
 
 """
-from ax.queue import Queue
+from ax.info import Memory
 
 
 class Distributor:
