@@ -1,0 +1,11 @@
+[Unit]
+Description=Service for Toby
+
+[Service]
+Type=simple
+User=toby
+Group=toby
+ExecStart=/bin/bash /home/toby/start_toby_service.sh
+
+[Install]
+WantedBy=multi-user.target
