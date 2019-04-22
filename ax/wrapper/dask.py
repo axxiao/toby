@@ -12,7 +12,7 @@ __version__ = "0.1"
 """
 from uuid import uuid4
 from ax.exception import NoAvailableWorker
-from ax.common import Connector
+from ax.base import Connector
 from ax.tools import load_module
 from dask.distributed import Client, wait, fire_and_forget, Future
 from distributed.utils import sync

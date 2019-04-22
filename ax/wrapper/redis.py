@@ -19,7 +19,7 @@ import pickle
 import redis
 from ax.exception import Timeout
 from ax.datetime import current_sys_time
-from ax.common import Connector
+from ax.base import Connector
 
 
 class Base(Connector):

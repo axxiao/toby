@@ -50,7 +50,7 @@ def add_datetime(orig_datetime, units='seconds=1'):
     return orig_datetime + relativedelta.relativedelta(**k)
 
 
-def now(zone=tz_local):
+def now(zone=tz_utc):
     """
     Current local time
 

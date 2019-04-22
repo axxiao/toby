@@ -27,6 +27,19 @@ from requests import get
 import inspect
 import sys
 import importlib
+import uuid
+
+
+def encrypt(value):
+    return value
+
+
+def decrypt(value):
+    return value
+
+
+def get_uuid():
+    return uuid.uuid4().hex
 
 
 def list_functions(module):
@@ -129,24 +142,11 @@ def retry(max_retry_times, logger=None, retry_interval=1.0, pass_retry_param_nam
                         # Reach max Retry
                         if logger:
                             logger.error('Retry ' + func.__name__ + str(cnt) + ' reached max times')
-                        raise MaxRetryReached(func.__name__ , cnt)
+                        raise MaxRetryReached(func.__name__, cnt)
                     time.sleep(retry_interval)
         return wrapper
     return decorator
 
-
-def get_ngrok_url(host='http://127.0.0.1:4040', tunnel_name='toby'):
-    """
-    Ngrok API
-    :param host: 
-    :param tunnel_name: 
-    :return: the https address e.e.
-    """
-    r = None
-    for url in get(host+'/api/tunnels').json()['tunnels']:
-        if url['name'] == tunnel_name:
-            r = url['public_url']
-    return r
 
 
 def run_thread(fun, *args, **kwargs):
@@ -154,13 +154,13 @@ def run_thread(fun, *args, **kwargs):
     Run function as background as thread
     
     :param fun: the function
-    :param set_daemon_flg :[optional, default to false] if run thread in daemon mode
     :param args: position args
     :param kwargs: key word args
+        set_daemon_flg :[optional, default to false] if run thread in daemon mode
     :return: the thread instance
     """
     th = threading.Thread(target=fun, args=args, kwargs=kwargs)
-    th.setDaemon(kwargs.get('set_daemon_flg',False))
+    th.setDaemon(kwargs.get('set_daemon_flg', False))
     th.start()
     return th
 
@@ -171,7 +171,7 @@ def search_paragraph(orig_str, begin, end=None, strip=False):
 
     Input:
         orig_str: the string to be searched
-        begin: the keyword for begining (exclusive)
+        begin: the keyword for beginning (exclusive)
         end [Optional]: the keyword for the end (exclusive), if not defined, get all the info before next begin
         strip [Optional]: default to False, which will not strip info if empty
 

@@ -1,16 +1,19 @@
 # The Core of Toby
 from flask import Flask, request, jsonify, g
-from flask_sqlalchemy import SQLAlchemy
 import os
 import logging
-from ax.tools import load_function
+from ax.log import trace_error
+from ax.connection import DatabaseConnection
+from ax.datetime import now
+from ax.tools import load_function, get_uuid
+from ax.exception import InvalidToken
 
 
 logger = logging.getLogger('werkzeug')
 debug_flg = True if os.getenv('TOBY_DEBUG', 'True') == 'True' else False
+token = os.environ['TOBY_TOKEN']
 app = Flask('Toby')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ['TOBY_DB_URI']
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.logger.setLevel(logging.DEBUG if debug_flg else logging.INFO)
 
 
@@ -19,7 +22,7 @@ def get_db():
     current application context.
     """
     if not hasattr(g, 'db'):
-        g.db = SQLAlchemy(app).engine.connect()
+        g.db = DatabaseConnection(os.getenv('TOBY_DB_USER', 'toby'), os.environ['TOBY_DB_PASSWORD'])
     return g.db
 
 
@@ -28,6 +31,8 @@ def close_db(error):
     """Closes the database again at the end of the request."""
     if hasattr(g, 'db'):
         g.db.close()
+        if error:
+            logger.error('Database connection closed because of :' + str(error))
 
 
 @app.route("/")
@@ -37,8 +42,21 @@ def ping():
 
 @app.route("/process")
 def process():
-    func = load_function
-    resp = func()
+    try:
+
+        in_param = request.get_json(force=True, silent=False, cache=False)
+        if in_param['request_token'] != token:
+            raise InvalidToken(in_param)
+        if 'request_id' not in in_param:
+            request_id = get_uuid()
+            in_param['request_id'] = request_id
+        if 'request_timestamp' not in in_param:
+            in_param['request_timestamp'] = now()
+        in_param['logger'] = logger
+        func = load_function(in_param)
+        resp = func()
+    except:
+        trace_error(logger)
     return jsonify(resp)
 
 
