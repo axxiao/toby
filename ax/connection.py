@@ -13,4 +13,17 @@ __version__ = "0.1"
         0.4 (22/04/2019 AX) : Restructured to be songle place for all connections
 
 """
+from .base import get_context
 from ax.wrapper.sqlalchemy import Connection as DatabaseConnection
+
+
+def get_db_connection(user_name, password, *args, **kwargs):
+    """
+    Context managed get db connection function
+    :param user_name: user name
+    :param password: password
+    :param args: additional arguments for DatabaseConnection
+    :param kwargs: additional key-word arguments for DatabaseConnection
+    :return: context object
+    """
+    return get_context(DatabaseConnection, user_name, password, *args, **kwargs)

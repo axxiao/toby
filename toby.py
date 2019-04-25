@@ -5,7 +5,7 @@ import logging
 from ax.log import trace_error
 from ax.connection import DatabaseConnection
 from ax.datetime import now
-from ax.tools import load_function, get_uuid
+from ax.tools import load_function, get_uuid, decrypt
 from ax.exception import InvalidToken
 
 
@@ -30,7 +30,7 @@ def get_db():
 def close_db(error):
     """Closes the database again at the end of the request."""
     if hasattr(g, 'db'):
-        g.db.close()
+        g.db.disconnect()
         if error:
             logger.error('Database connection closed because of :' + str(error))
 
@@ -42,21 +42,26 @@ def ping():
 
 @app.route("/process")
 def process():
+    request_id = None
     try:
-
         in_param = request.get_json(force=True, silent=False, cache=False)
-        if in_param['request_token'] != token:
+        if decrypt(in_param['request_token']) != token:
+            # verify token
             raise InvalidToken(in_param)
         if 'request_id' not in in_param:
             request_id = get_uuid()
             in_param['request_id'] = request_id
+        else:
+            request_id = in_param['request_id']
         if 'request_timestamp' not in in_param:
             in_param['request_timestamp'] = now()
         in_param['logger'] = logger
+        in_param['get_db_connection'] = get_db
         func = load_function(in_param)
         resp = func()
     except:
-        trace_error(logger)
+        e = trace_error(logger)
+        resp = {'request_id': request_id, 'request_status': 'error', 'request_error': str(e[-1])}
     return jsonify(resp)
 
 

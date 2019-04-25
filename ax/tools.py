@@ -8,6 +8,7 @@ __version__ = "0.2"
     Version:
         0.1 (1/7/2017): implemented run_thread, run_thread, search_paragraph
         0.2 (3/3/2018): moved date related function to datetime, added retry
+        0.3 (25/4/2019): encrypt/ decrypt
 
 Functions List:
 
@@ -28,14 +29,32 @@ import inspect
 import sys
 import importlib
 import uuid
+import os
+from cryptography.fernet import Fernet
+
+
+# the fernet for encrypt/ decrypt
+_fernet = Fernet(os.getenv('TOBY_ENCRYPT_KEY') or Fernet.generate_key().decode()).encode()
 
 
 def encrypt(value):
-    return value
+    """
+    Encrypt the input value
+    :param value: input value
+    :return: encrypted output
+    """
+    return _fernet.encrypt(value.encode() if type(value) != bytes else value)
 
 
-def decrypt(value):
-    return value
+def decrypt(value, output_decode_flag=True):
+    """
+    Decrypt
+    :param value: the encrypted value
+    :param output_decode_flag: default to True; the flag of if to decode output
+    :return: the decrypted output
+    """
+    o = _fernet.decrypt(value)
+    return o.decode() if output_decode_flag else o
 
 
 def get_uuid():
@@ -146,7 +165,6 @@ def retry(max_retry_times, logger=None, retry_interval=1.0, pass_retry_param_nam
                     time.sleep(retry_interval)
         return wrapper
     return decorator
-
 
 
 def run_thread(fun, *args, **kwargs):

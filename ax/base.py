@@ -5,6 +5,21 @@ __date__ = "2017-04-22"
 __version__ = "0.5"
 """
 from .log import get_logger
+from contextlib import contextmanager
+
+
+@contextmanager
+def get_context(resource_class, *args, **kwds):
+    # Code to acquire resource, e.g.:
+    resource = resource_class(*args, **kwds)
+    try:
+        yield resource
+    finally:
+        # release
+        if hasattr(resource, 'disconnect'):
+            resource.disconnect()
+        elif hasattr(resource, 'close'):
+            resource.close()
 
 
 class Connector:
