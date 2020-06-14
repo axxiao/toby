@@ -12,8 +12,8 @@ __version__ = "0.1"
 """
 from uuid import uuid4
 from ax.exception import NoAvailableWorker
-from ax.common import Connector
-from ax.tools import reload_module
+from ax.base import Connector
+from ax.tools import load_module
 from dask.distributed import Client, wait, fire_and_forget, Future
 from distributed.utils import sync
 
@@ -79,7 +79,7 @@ class DaskClient(Client, Connector):
 
     def load_library_from_file(self, filename, module_name, timeout=600):
         self.upload_file(filename)
-        wait(self.run_task_on_echo_worker(reload_module, module_name, logger=self.logger), timeout=timeout)
+        wait(self.run_task_on_echo_worker(load_module, module_name, logger=self.logger), timeout=timeout)
 
     def run_task(self, func, *args, task_timeout=60, **kwargs):
         """

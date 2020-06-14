@@ -1,0 +1,11 @@
+[Unit]
+Description=Service for jupyter notebook
+
+[Service]
+Type=simple
+User=jupyter
+Group=jupyter
+ExecStart=/bin/bash /home/jupyter/start-jupyter.sh
+
+[Install]
+WantedBy=multi-user.target

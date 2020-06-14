@@ -19,7 +19,7 @@ import pickle
 import redis
 from ax.exception import Timeout
 from ax.datetime import current_sys_time
-from ax.common import Connector
+from ax.base import Connector
 
 
 class Base(Connector):
@@ -29,26 +29,39 @@ class Base(Connector):
     def __init__(self, logger_name, host='localhost', port=12116, db=11):
         Connector.__init__(self, host=host, port=port, logger_name=logger_name)
         self.db = db
-        self.redis = None
+        self._redis = None
 
-    def connect(self, rds=redis.Redis, **kwargs):
+    def connect(self, rds=redis.StrictRedis, **kwargs):
         if 'passwword' not in kwargs:
-            pwd = os.environ.get('REDIS_PASSWD',None)
+            pwd = os.environ.get('TOBY_REDIS_PASSWD',None)
             if pwd:
                 kwargs['password'] = pwd
-        self.redis = rds(host=self.host, port=self.port, db=self.db, **kwargs)
+        self._redis = rds(host=self.host, port=self.port, db=self.db, **kwargs)
 
 
 class Cache(Base):
-    def __init__(self, logger_name='Cache', host='localhost', port=12116, db=11, redis=None, **kwargs):
+    """
+    Cahce based on redis
+    """
+    def __init__(self, logger_name='Cache', host='localhost', port=12116, db=11, redis_instance=None, **kwargs):
         Base.__init__(self, logger_name=logger_name, host=host, port=port, db=db)
-        if redis is None:
-            self.connect(rds=redis.Redis, **kwargs)
+        if redis_instance is None:
+            self.connect(rds=redis.StrictRedis, **kwargs)
         else:
             # allow passing in redis instance
-            self.redis = redis
-        self._char_to_type = {b"s": str, b"i": int, b"f": float}
-        self._type_to_char = {self._char_to_type[c]: c for c in self._char_to_type}
+            self._redis = redis_instance
+        # enable expire function
+        self.expire = self._redis.expire
+        # self._char_to_type = {b"s": str, b"i": int, b"f": float}
+        # self._type_to_char = {self._char_to_type[c]: c for c in self._char_to_type}
+        
+        
+    def get_instance(self):
+        """
+        return the redis connection for reuse
+        """
+        return self._redis
+        
 
     def put(self, key, subkey=None, val=None, expire=-1):
         """
@@ -62,12 +75,13 @@ class Cache(Base):
         """
         o = pickle.dumps(val)
         if not subkey:
-            r = self.redis.set(key, o)
+            r = self._redis.set(key, o)
         else:
-            r = self.redis.hset(key, subkey, o)
+            r = self._redis.hset(key, subkey, o)
         if expire > 0:
-            self.redis.expire(key, expire)
+            self._redis.expire(key, expire)
         return r
+    
 
     def count(self, key, subkey=None, step=1):
         """
@@ -79,10 +93,11 @@ class Cache(Base):
         :return: N/A
         """
         if subkey:
-            self.redis.hincrby(key, subkey, amount=step)
+            self._redis.hincrby(key, subkey, amount=step)
         else:
-            self.redis.incrby(key, amount=step)
+            self._redis.incrby(key, amount=step)
 
+            
     def get(self, key, subkey=None):
         """
         Fetch from the cache by key/ subkey
@@ -91,16 +106,59 @@ class Cache(Base):
         :param subkey: the sub key if has
         :return: the fetched object None if not exist
         """
-        r = self.redis.hget(key, subkey) if subkey else self.redis.get(key)
+        r = self._redis.hget(key, subkey) if subkey else self._redis.get(key)
         if r:
             rtn = pickle.loads(r)
         else:
             rtn = None
         return rtn
+    
+    
+    def scan(self, match='*', start=0, count=None):
+        """
+        Scan all keys with match pattern
+        :param match: the Key match pattern
+        :param start: [Optional] the start point of return if specified
+        :param count: [Optional] how many records to return if specified
+        :return: the scan result
+        """
+        return self._redis.scan(cursor=start,match=match,count=count)
+    
+    
+    def sub_scan(self, key, match='*', start=0, count=None):
+        """
+        Scan all keys with match pattern
+        :param key: the Key
+        :param match: the subKey match pattern
+        :param start: [Optional] the start point of return if specified
+        :param count: [Optional] how many records to return if specified
+        :return: the scan result
+        """
+        return self._redis.hscan(key, cursor=start,match=match,count=count)
+    
+    
+    def delete(self, key, *subkey):
+        """
+        Fetch from the cache by key/ subkey
+        
+        :param key: the Key
+        :param *subkey: the sub key(s), if not specified, delete the whole key
+        :return: the fetched object None if not exist
+        """
+        if subkey:
+            rtn = self._redis.hdel(key,*subkey)
+        else:
+            rtn = self._redis.delete(key)
+        return rtn
+        
 
-
-class PubSub(Base):
-    def __init__(self, logger_name='Queue', host='localhost', port=12116, db=11, timeout=-1, redis=None, **kwargs):
+class Queue(Base):
+    """
+    Queue based redis
+        Pub/Sub
+        Push/ Pop
+    """
+    def __init__(self, logger_name='Queue', host='localhost', port=12116, db=11, timeout=-1, redis_instance=None, **kwargs):
         Base.__init__(self, logger_name=logger_name, host=host, port=port, db=db)
         kwargs = dict()
         self.channels = None
@@ -108,16 +166,17 @@ class PubSub(Base):
         self.timeout = timeout
         if timeout > 0:
             kwargs['socket_timeout'] = timeout
-        if redis is None:
+        if redis_instance is None:
             self.connect(rds=redis.Redis, **kwargs)
         else:
             # allow passing in redis instance
-            self.redis = redis
-        self.redis_pubsub = self.redis.pubsub(ignore_subscribe_messages=True)
+            self._redis = redis_instance
+        self._redis_pubsub = self._redis.pubsub(ignore_subscribe_messages=True)
 
-    def pub(self, channel, message):
-        self.redis.publish(channel, self._pack_msg(message))
+    
+    
 
+    
     @staticmethod
     def _pack_msg(msg):
         m = pickle.dumps(msg)
@@ -129,6 +188,23 @@ class PubSub(Base):
             m = pickle.loads(queue_inp['data']) if queue_inp.get('data', None) is not None else None
             self.last_channel = queue_inp['channel'].decode()
         return m
+    
+    """
+    Push/ Pop
+    """
+    def push(self, queue_name, message):
+        self._redis.rpush(queue_name, self._pack_msg(message))
+
+    def pop(self, queue_name):
+        out = self._redis.lpop(queue_name)
+        return None if out is None else self._unpack_msg(out)
+    
+    
+    """
+    Pub/ Sub
+    """
+    def pub(self, channel, message):
+        self._redis.publish(channel, self._pack_msg(message))
 
     def sub(self, *channels, timeout=-1, wildcard=True):
         """
@@ -142,30 +218,32 @@ class PubSub(Base):
         if channels != self.channels:
             self.unsub()
             if wildcard:
-                self.redis_pubsub.psubscribe(*channels)
+                self._redis_pubsub.psubscribe(*channels)
             else:
-                self.redis_pubsub.subscribe(*channels)
+                self._redis_pubsub.subscribe(*channels)
             self.channels = channels
             self.logger.debug('Subscribed to queue:'+str(channels))
         if timeout < 0 and self.timeout < 0:
             # Block until receive
-            for msg in self.redis_pubsub.listen():
+            for msg in self._redis_pubsub.listen():
                 rtn = msg
                 break
-            # rtn = self.redis_pubsub.listen()
+            # rtn = self._redis_pubsub.listen()
         else:
             timeout_ts = current_sys_time()+timeout
             rtn = None
             while rtn is None and timeout_ts > current_sys_time():
-                rtn = self.redis_pubsub.get_message(ignore_subscribe_messages=True, timeout=timeout)
+                rtn = self._redis_pubsub.get_message(ignore_subscribe_messages=True, timeout=timeout)
             if rtn is None:
                 raise Timeout('Timeout while listening to queue:'+str(self.channels))
 
         return self._unpack_msg(rtn)
 
+    
     def unsub(self):
-        self.redis_pubsub.punsubscribe()
-        self.redis_pubsub.unsubscribe()
+        self._redis_pubsub.punsubscribe()
+        self._redis_pubsub.unsubscribe()
+        
 
     def pubsub(self, to_topic, req_obj, from_topic, timeout=-1):
         """

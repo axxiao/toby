@@ -40,7 +40,7 @@ By AX
 from distributed import Worker
 from distributed.threadpoolexecutor import ThreadPoolExecutor
 # from distributed.worker import _ncores
-from ax.info import Info
+from ax.connection import Connector
 from ax.log import get_logger
 from ax.tools import load_function
 
@@ -51,17 +51,18 @@ class TobyBaseExecutor(ThreadPoolExecutor):
 
     By default, worker has toby_task_flag = True, it will include 2 objects
     - toby_logger : the logger
-    - toby_info : the Infor object instance
+    - toby_cache : the Cache object instance
     """
 
     def __init__(self, *args, **kwargs):
         ThreadPoolExecutor.__init__(self, *args, **kwargs)
-        self.info = None
+        self.cache = None
         self.logger = None
         self.logger_name = kwargs.get('logger_name', 'Toby.Workflow.BaseExecutor')
         self.kwargs = dict()
-        self.kwargs['toby_info'] = Info(logger_name=self.logger_name)
+        self.kwargs['toby_connector'] = Connector(logger_name=self.logger_name)
         self.kwargs['toby_logger'] = get_logger(self.logger_name)
+        self.kwargs['toby_executor'] = super(TobyBaseExecutor, self)
         self.setup()
 
     def setup(self):

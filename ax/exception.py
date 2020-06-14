@@ -37,7 +37,19 @@ class NoAvailableWorker(BaseError):
         """
 
     def __init__(self, worker=''):
-        BaseError.__init__(self, 'NoAvailableWorker',str(worker))
+        BaseError.__init__(self, 'NoAvailableWorker', str(worker))
+
+
+class InvalidToken(BaseError):
+    """Raised when timeout
+
+        Attributes:
+            fun
+        """
+
+    def __init__(self, request={}):
+        BaseError.__init__(self, 'InvalidToken', str(request))
+
 
 class MaxRetryReached(BaseError):
     """Raised when an Max retry reached
