@@ -4,14 +4,20 @@ from datetime import datetime
 import os
 import math
 import argparse
-import logging
 import subprocess
+from ax.log import build_logger
 
 
-def tail(f, n, offset=0):
-    proc = subprocess.Popen(['tail', '-n', n + offset, f], stdout=subprocess.PIPE)
+def tail(f, n=10, head=None):
+    """
+    use Unix command to get last n lines of a file
+    and return first #[head] rows
+    """
+    head = head or n
+    head = n if head > n else head
+    proc = subprocess.Popen(['tail', '-n', str(n), f], stdout=subprocess.PIPE)
     lines = proc.stdout.readlines()
-    return lines[:, -offset]
+    return lines[:head]
 
 
 def main(average_mins=10, max_temp=90, log_path='/tmp/', max_reboot=3, check_intevral=5):
@@ -19,19 +25,22 @@ def main(average_mins=10, max_temp=90, log_path='/tmp/', max_reboot=3, check_int
     Monitor tempature and reboot/ power off
     """
     # or command: vcgencmd measure_temp
-    logger = logging.get_logger()
-    logger.info('Monitor Starting")
+    logger = build_logger('Monitor-Temperature', 'info')
+    logger.info('Monitor Starting')
     temps = []
     while True:
-        temp = psutil.sensors_temperatures()['cpu-thermal']
-        if temp[0].current > max_temp:
-            logger.error("FATAL!\nSystem temperature is {} C too HIGH!".format("{:.2f}".format(temp[0].current)))
+        sensors = psutil.sensors_temperatures()
+        temp = None
+        current = max([v[0] for k, v in sensors.items() if 'thermal' in k]).current
+        # temp = ['cpu-thermal'] for pi-zero
+        if current > max_temp:
+            logger.error("FATAL!\nSystem temperature is {} C too HIGH!".format("{:.2f}".format(current)))
             logger.error("Will reboot NOW! @{} UTC".format(datetime.utcnow().isoformat()))
             time.sleep(1)
             # check temp_critical.log
             cmd = 'reboot'
             os.system("sudo {}".format(cmd)) # end
-        temps.append(temp[0].current)
+        temps.append(current)
         if len(temps) > (12 * average_mins):
             avg = sum(temps) / len(temps)
             logger.info("The average tempature in past {} minutes was: " +
@@ -47,12 +56,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process some integers.')
     parser.add_argument('--mins', type=int, default=10,
                         help='output evey x minutes')
-    parser.add_argument('--max', type=int, deafult=90,
+    parser.add_argument('--max', type=int, default=90,
                         help='max temperature which will trigger reboot')
-    parser.add_argument('--max-reboot', type=int, default=5,
+    parser.add_argument('--max_reboot', type=int, default=3,
                         help='max reboot times before swith off powers')
-    parser.add_argument('--log-path', type=str,
+    parser.add_argument('--log_path', type=str,
                         default='/opt/workspace/logs/monitor',
                         help='max temperature which will trigger reboot')
     args = parser.parse_args()
-    main(args.mins, args.max, args.log-path, args.max-reboot)
+    main(args.mins, args.max, args.log_path, args.max_reboot)
