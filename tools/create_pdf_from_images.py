@@ -1,26 +1,43 @@
 from os import listdir, rmdir, remove
 from os.path import isfile, join
 from fpdf import FPDF
+import argparse
 import re
-from PIL import Image, ImageOps
+from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
+import traceback, sys
 
-import traceback,sys
 
 def is_image(filename):
-    isImg=False
+    """
+    Check if the file names shows it is an image
+    :param filename: the file name
+    :return: True - is .jpg/ .gif/ .png .jpeg
+    """
+    rtn = False
     try:
         file_ext = filename.rsplit('.', maxsplit=1)[1]
         if file_ext.lower() in ['jpg', 'gif', 'png', 'jpeg']:
-            isImg=True
-    except:
+            rtn = True
+    except IndexError:
         pass
-    return isImg
+    return rtn
 
-def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True, 
+
+def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
                max_img_size=1024, output_error=False, delete_folder=True):
     """
+
+    :param parent_path: absolute the base path
+    :param folder_name: folder name to scan
+    :param output_path: output path
+    :param h: default to 297 the height of A4
+    :param overwrite: default True,  when target files exist, if overwrite
+    :param max_img_size: default to 1024,  max dimension of the image (if image is bigger than this, will shrik to this)
+    :param output_error: default to False, option if output error
+    :param delete_folder: default to True if delete the folder after PDF is created
+    :return: N/A information is printed to stdout
     """
     created = False
     cur_path = join(parent_path, folder_name)
@@ -56,15 +73,6 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
                 original_image=original_image.resize((int(original_image.size[0]/rs_ratio),
                                                       int(original_image.size[1]/rs_ratio)),Image.ANTIALIAS).convert("RGB")
                 original_image.save(tgt,optimize=True,quality=95)
-            #     original_image = Image.open(join(cur_path, image))            
-            # #     r = (original_image.size[0]/w)  # ration for resize
-            # #     s = (w, int(original_image.size[1]/r))  # new size
-            #     r = (original_image.size[1]/w)
-            #     resized = ImageOps.fit(original_image, s, Image.ANTIALIAS)
-            #     print(image, original_image.size, '->', s)
-            #     file_ext = image.rsplit('.', maxsplit=1)[1]
-            #     tmp =f'/tmp/tmp_{folder_name}.{file_ext}'
-            #     resized.save(tmp)
                 try:
                     pdf.add_page(orientation=ori)
                     pdf.image(tgt, 0,0, w=w, h=hh)
@@ -93,11 +101,19 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
             print(f'\tCleaned up {cur_path}')
         except OSError as e:
             print("\tError Deleteing: %s : %s" % (cur_path, e.strerror))
-
+    # end of create_pdf
 
 def main(args):
-    create_pdf(root, args.target, args.output,output_error=True,overwrite=False, delete_folder=True)
+    out = args.base if args.output == '' else args.output
+    create_pdf(args.base, args.target, out, output_error=True,overwrite=False, delete_folder=True)
 
 
-if __name__ == '__Main__':
-    main(args)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Create PDF from images in folders')
+    parser.add_argument('--base', type=str, required=True,
+                        help = 'base working dir')
+    parser.add_argument('--target', type=str, required=True,
+                        help='target folder')
+    parser.add_argument('--output', type=str, default='',
+                        help='output folder')
+    main(parser.parse_args())
