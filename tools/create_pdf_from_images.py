@@ -104,8 +104,7 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
     # end of create_pdf
 
 def main(args):
-    out = args.base if args.output == '' else args.output
-    create_pdf(args.base, args.target, out, output_error=True,overwrite=False, delete_folder=True)
+    create_pdf(args.base, args.target, args.output, output_error=True,overwrite=False, delete_folder=True)
 
 
 if __name__ == '__main__':
@@ -114,6 +113,6 @@ if __name__ == '__main__':
                         help = 'base working dir')
     parser.add_argument('--target', type=str, required=True,
                         help='target folder')
-    parser.add_argument('--output', type=str, default='',
+    parser.add_argument('--output', type=str, required=True,
                         help='output folder')
     main(parser.parse_args())
