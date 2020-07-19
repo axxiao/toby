@@ -6,8 +6,8 @@ Type=simple
 User=toby
 Group=toby
 ExecStart=/bin/bash /opt/toby/monitor_core_temperature.sh
-StandardOutput=file:/opt/workspace/logs/monitor/temp_info.log
-StandardError=file:/opt/workspace/logs/monitor/temp_critical.log
+# StandardOutput=file:/opt/workspace/logs/monitor/temp_info.log
+# StandardError=file:/opt/workspace/logs/monitor/temp_critical.log
 
 [Install]
 WantedBy=multi-user.target
