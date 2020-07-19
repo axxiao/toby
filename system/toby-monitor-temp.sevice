@@ -1,0 +1,19 @@
+# copy file toby_monitor_temp /etc/systemd/system (ubunt 18.04, it's system.control)
+# sudo cp toby-monitor-temp.sevice /etc/systemd/system.control/toby-monitor-temp.service
+# systemctl enable toby_monitor_temp.service
+
+[Unit]
+Description=Toby Monitor for temperature
+
+[Service]
+Type=simple
+User=toby
+Group=toby
+ExecStart=/bin/bash /opt/workspace/toby/system/monitor_core_temperature.sh
+StandardOutput=file:/opt/workspace/logs/monitor/temp_info.log
+StandardError=file:/opt/workspace/logs/monitor/temp_critical.log
+PIDFile=/run/toby-monitor-temp.pid
+WorkingDirectory=/opt/workspace/toby
+
+[Install]
+WantedBy=multi-user.target
