@@ -41,9 +41,9 @@ def main(average_mins=10, max_temp=90, log_path='/tmp/', max_reboot=3, check_int
             cmd = 'reboot'
             os.system("sudo {}".format(cmd)) # end
         temps.append(current)
-        if len(temps) > (12 * average_mins):
+        if len(temps) > ((60 / check_intevral) * average_mins):
             avg = sum(temps) / len(temps)
-            logger.info("The average tempature in past {} minutes was: " +
+            logger.info("The average tempature in past {} minutes was: "
                         "{} C, top was {} C @{} UTC".format(str(average_mins), "{:.2f}".format(avg), 
                                                             "{:.2f}".format(max(temps)),
                                                             datetime.utcnow().isoformat())
