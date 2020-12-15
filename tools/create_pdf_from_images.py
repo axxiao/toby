@@ -1,3 +1,14 @@
+"""
+The tool to search and combine images into PDF (order by the file names)
+
+__author__ = "Alex Xiao <http://www.alexxiao.me/>"
+__date__ = "2020-12-03"
+__version__ = "0.1"
+
+    Version:
+        0.1 (01/12/2020 AX) : Init
+
+"""
 from os import listdir, rmdir, remove
 from os.path import isfile, join
 from fpdf import FPDF
@@ -5,8 +16,12 @@ import argparse
 import re
 from PIL import Image
 from PIL import ImageFile
+import traceback
+import sys
+
+
+# Try best to load files
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-import traceback, sys
 
 
 def is_image(filename):
@@ -26,7 +41,8 @@ def is_image(filename):
 
 
 def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
-               max_img_size=1024, output_error=False, delete_folder=True):
+               max_img_size=1024, output_error=False, delete_folder=True,
+               min_files=10):
     """
 
     :param parent_path: absolute the base path
@@ -37,6 +53,7 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
     :param max_img_size: default to 1024,  max dimension of the image (if image is bigger than this, will shrik to this)
     :param output_error: default to False, option if output error
     :param delete_folder: default to True if delete the folder after PDF is created
+    :param min_files: default to 10, the min number file to create PDF from, if less than this ,will ignore the folder
     :return: N/A information is printed to stdout
     """
     created = False
@@ -45,9 +62,9 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
     image_list = [f for f in listdir(cur_path) if isfile(join(cur_path, f)) and is_image(f) and (f[0].isalpha() or f[0].isdigit())]
     pdf_name = folder_name + '.pdf'
     if not overwrite and isfile(join(output_path, pdf_name)):
-        #should skip
+        # should skip
         print(f'SKIP PDF {pdf_name} from {parent_path}' )
-    elif len(image_list)>=10:        
+    elif len(image_list) >= min_files:
         pdf = FPDF()
         pdf.set_auto_page_break(False, margin = 0.0)        
         print(f'Creating PDF {pdf_name} from {parent_path}' )
@@ -62,8 +79,8 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
                     hh = h
                 else:
                     # horiz, recal                    
-                    ori ='H'
-                    a4 = 210/297 # default a4
+                    ori = 'H'
+                    a4 = 210/297  # default a4
                     rs_ratio = original_image.size[0]/max_img_size
                     r = original_image.size[0]/h
                     hh = h/297*210
@@ -72,10 +89,10 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
                 tgt=join(cur_path, 'resized_' + image)
                 original_image=original_image.resize((int(original_image.size[0]/rs_ratio),
                                                       int(original_image.size[1]/rs_ratio)),Image.ANTIALIAS).convert("RGB")
-                original_image.save(tgt,optimize=True,quality=95)
+                original_image.save(tgt, optimize=True,quality=95)
                 try:
                     pdf.add_page(orientation=ori)
-                    pdf.image(tgt, 0,0, w=w, h=hh)
+                    pdf.image(tgt, 0, 0, w=w, h=hh)
                 except:
                     err_cnt += 1
             if err_cnt <= len(image_list)/2:
@@ -93,15 +110,16 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
     for sub_folder_name in [d for d in listdir(cur_path) if not isfile(join(cur_path, d))]:
         create_pdf(cur_path, sub_folder_name, output_path, h=h,overwrite=overwrite,
                    max_img_size=max_img_size, output_error=output_error, delete_folder=delete_folder)
-    if created and delete_folder and cur_path!=output_path:
+    if created and delete_folder and cur_path != output_path:
         try:
             for f in [join(cur_path, f) for f in listdir(cur_path) if isfile(join(cur_path, f)) and '.pdf' not in f]:
                 remove(f)
             rmdir(cur_path)
             print(f'\tCleaned up {cur_path}')
         except OSError as e:
-            print("\tError Deleteing: %s : %s" % (cur_path, e.strerror))
+            print("\tError Deleting: %s : %s" % (cur_path, e.strerror))
     # end of create_pdf
+
 
 def main(args):
     create_pdf(args.base, args.target, args.output, output_error=True,overwrite=False, delete_folder=True)
@@ -110,7 +128,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create PDF from images in folders')
     parser.add_argument('--base', type=str, required=True,
-                        help = 'base working dir')
+                        help='base working dir')
     parser.add_argument('--target', type=str, required=True,
                         help='target folder')
     parser.add_argument('--output', type=str, required=True,
