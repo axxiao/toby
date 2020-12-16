@@ -42,7 +42,7 @@ def is_image(filename):
 
 def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
                max_img_size=1024, output_error=False, delete_folder=True,
-               min_files=10):
+               min_files=10, recursive=True):
     """
 
     :param parent_path: absolute the base path
@@ -54,6 +54,7 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
     :param output_error: default to False, option if output error
     :param delete_folder: default to True if delete the folder after PDF is created
     :param min_files: default to 10, the min number file to create PDF from, if less than this ,will ignore the folder
+    :param recursive: default to True, if run recursively for sub folders
     :return: N/A information is printed to stdout
     """
     created = False
@@ -66,7 +67,7 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
         print(f'SKIP PDF {pdf_name} from {parent_path}' )
     elif len(image_list) >= min_files:
         pdf = FPDF()
-        pdf.set_auto_page_break(False, margin = 0.0)        
+        pdf.set_auto_page_break(False, margin=0.0)
         print(f'Creating PDF {pdf_name} from {parent_path}' )
         try:
             err_cnt = 0
@@ -93,7 +94,7 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
                 try:
                     pdf.add_page(orientation=ori)
                     pdf.image(tgt, 0, 0, w=w, h=hh)
-                except:
+                except Exception as ex:
                     err_cnt += 1
             if err_cnt <= len(image_list)/2:
                 pdf.output(join(output_path, pdf_name), "F")
@@ -107,9 +108,10 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
             print(f'!!ERROR  {pdf_name}', len(image_list), 'FAILED')
     else:
         print(f'No image found in {cur_path}' )
-    for sub_folder_name in [d for d in listdir(cur_path) if not isfile(join(cur_path, d))]:
-        create_pdf(cur_path, sub_folder_name, output_path, h=h,overwrite=overwrite,
-                   max_img_size=max_img_size, output_error=output_error, delete_folder=delete_folder)
+    if recursive:
+        for sub_folder_name in [d for d in listdir(cur_path) if not isfile(join(cur_path, d))]:
+            create_pdf(cur_path, sub_folder_name, output_path, h=h, overwrite=overwrite,
+                       max_img_size=max_img_size, output_error=output_error, delete_folder=delete_folder)
     if created and delete_folder and cur_path != output_path:
         try:
             for f in [join(cur_path, f) for f in listdir(cur_path) if isfile(join(cur_path, f)) and '.pdf' not in f]:
@@ -122,15 +124,19 @@ def create_pdf(parent_path, folder_name, output_path, h=297, overwrite=True,
 
 
 def main(args):
-    create_pdf(args.base, args.target, args.output, output_error=True,overwrite=False, delete_folder=True)
+    base, target = args.source.rsplit('/', maxsplit=1)
+    create_pdf(base, target, args.output, output_error=True, overwrite=args.overwrite,
+               delete_folder=args.cleanup)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create PDF from images in folders')
-    parser.add_argument('--base', type=str, required=True,
-                        help='base working dir')
-    parser.add_argument('--target', type=str, required=True,
+    parser.add_argument('--source', type=str, required=True,
                         help='target folder')
     parser.add_argument('--output', type=str, required=True,
                         help='output folder')
+    parser.add_argument('--overwrite', type=bool, deafult=False,
+                        help='[default to False] If override the target file')
+    parser.add_argument('--cleanup', type=bool, deafult=False,
+                        help='[default to False] If delete folder after successfully created PDF')
     main(parser.parse_args())

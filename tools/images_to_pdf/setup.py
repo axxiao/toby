@@ -8,11 +8,11 @@ setuptools.setup(
     name="images_to_pdf",
     version="1.0.0",
     author="Alex Xiao",
-    author_email="alex.xiao@gmail.com",
+    author_email="axiao@mail.com",
     description="A tool to combine images into PDF file(s)",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    url="https://github.com/axxiao/toby/tree/master/tools/images_to_pdf",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
